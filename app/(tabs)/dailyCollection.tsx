@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import {saveTeaLeaf} from '@/src/service/dailyTeaLeafService';
 import { 
   View, Text, StyleSheet, ScrollView, TextInput, 
   TouchableOpacity, SafeAreaView, StatusBar, 
@@ -29,8 +30,10 @@ const DailyUpdate = () => {
   // Form States
   const [farmerId, setFarmerId] = useState('');
   const [farmerName, setFarmerName] = useState('');
+  const [date, setFarmerDate] = useState('');
   const [goldLeaves, setGoldLeaves] = useState('');
   const [goodLeaves, setGoodLeaves] = useState('');
+  
 
   // Clock Update
   useEffect(() => {
@@ -38,21 +41,34 @@ const DailyUpdate = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const handleSaveRecord = () => {
-    if (!farmerId || !goldLeaves || !goodLeaves) {
+  const handleSaveRecord = async () => {
+    if (!farmerId || !goldLeaves || !goodLeaves || !date) {
       Alert.alert("අවධානය", "කරුණාකර අනිවාර්ය දත්ත ඇතුළත් කරන්න.");
       return;
     }
-    // Logic to add to list or database
-    Alert.alert("සාර්ථකයි", "දත්ත තාවකාලිකව ඇතුළත් කරන ලදී.");
+    
+    const formData = {
+      farmerId,
+      farmerName,
+      date,
+      goldLeaves,
+      goodLeaves
+    }
+
+    const res = await saveTeaLeaf(formData);
+    Alert.alert("Message",res);
+
+    clearInputFeild();
   };
 
-  const handleFinalSave = () => {
-    Alert.alert("පද්ධතියට ඇතුළත් කිරීම", "මුළු වගුවම පද්ධතියට සුරැකීමට ඔබට අවශ්‍යද?", [
-      { text: "නැත", style: "cancel" },
-      { text: "ඔව්", onPress: () => Alert.alert("Saved", "දත්ත සාර්ථකව සුරැකිණි!") }
-    ]);
-  };
+  const clearInputFeild = () => {
+    setFarmerId('');
+    setFarmerName('');
+    setFarmerDate('');
+    setGoldLeaves('');
+    setGoodLeaves('');
+  }
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -114,9 +130,18 @@ const DailyUpdate = () => {
                 <Text style={styles.label}>නම</Text>
                 <TextInput 
                   style={styles.input} 
-                  placeholder="නම ඇතුළත් කරන්න" 
+                  placeholder="නම" 
                   value={farmerName}
                   onChangeText={setFarmerName}
+                />
+             </View>
+             <View style={styles.inputHalf}>
+                <Text style={styles.label}>දිනය</Text>
+                <TextInput 
+                  style={styles.input} 
+                  placeholder="දිනය" 
+                  value={date}
+                  onChangeText={setFarmerDate}
                 />
              </View>
           </View>
@@ -165,11 +190,7 @@ const DailyUpdate = () => {
           <View style={styles.footerActions}>
              <TouchableOpacity style={styles.deleteBtn}>
                 <Trash2 color={COLORS.danger} size={18} />
-                <Text style={styles.deleteText}>DELETE ALL</Text>
-             </TouchableOpacity>
-             <TouchableOpacity style={styles.saveBtn} onPress={handleFinalSave}>
-                <Save color={COLORS.white} size={18} />
-                <Text style={styles.saveText}>SAVE TABLE</Text>
+                <Text style={styles.deleteText}>DELETE</Text>
              </TouchableOpacity>
           </View>
         </View>

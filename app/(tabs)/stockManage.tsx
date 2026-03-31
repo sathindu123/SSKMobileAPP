@@ -1,15 +1,27 @@
-import React, { useState } from 'react';
-import { 
-  View, Text, StyleSheet, ScrollView, TextInput, 
-  TouchableOpacity, SafeAreaView, StatusBar, 
-  Alert, KeyboardAvoidingView, Platform 
-} from 'react-native';
-import { 
-  Box, Package, Hash, ShoppingBag, 
-  Tag, Plus, Save, Trash2, ArrowLeft,
-  ChevronRight, AlertCircle, Info
-} from 'lucide-react-native';
+import { saveStock } from '@/src/service/stockService';
 import { useRouter } from 'expo-router';
+import {
+   AlertCircle,
+   ArrowLeft,
+   Box,
+   Hash,
+   Package,
+   Save,
+   ShoppingBag,
+   Tag
+} from 'lucide-react-native';
+import React, { useState } from 'react';
+import {
+   Alert, KeyboardAvoidingView, Platform,
+   SafeAreaView,
+   ScrollView,
+   StatusBar,
+   StyleSheet,
+   Text,
+   TextInput,
+   TouchableOpacity,
+   View
+} from 'react-native';
 
 // ප්‍රධාන වර්ණ පද්ධතිය
 const COLORS = {
@@ -25,7 +37,7 @@ const COLORS = {
 const StockManagement = () => {
   const router = useRouter();
 
-  // Form States
+
   const [formData, setFormData] = useState({
     id: '',
     productName: '',
@@ -33,11 +45,15 @@ const StockManagement = () => {
     price: ''
   });
 
-  const handleSaveStock = () => {
+  const handleSaveStock = async () => {
     if (!formData.productName || !formData.count || !formData.price) {
       Alert.alert("අවධානය", "කරුණාකර සියලු විස්තර ඇතුළත් කරන්න.");
       return;
     }
+    const res = await saveStock(formData);
+    
+    Alert.alert("mse",res);
+    
     Alert.alert("සාර්ථකයි", "තොග විස්තර පද්ධතියට එක් කරන ලදී.");
   };
 

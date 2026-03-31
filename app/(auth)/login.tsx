@@ -1,7 +1,7 @@
-import { registerUser } from '@/src/service/AuthService';
 import { useRouter } from 'expo-router';
-import { ArrowRight, Leaf, Lock, User, UserCircle } from 'lucide-react-native';
+import { ArrowRight, Leaf, Lock, User, CheckCircle2 } from 'lucide-react-native'; // CheckCircle2 එක් කළා
 import React, { useState } from 'react';
+import { loginUser } from '@/src/service/AuthService';
 import {
   ActivityIndicator, Alert,
   ImageBackground, KeyboardAvoidingView, Platform,
@@ -9,10 +9,11 @@ import {
   StyleSheet,
   Text,
   TextInput, TouchableOpacity,
-  View
+  View,
+  Modal // Modal එක් කළා
 } from 'react-native';
 
-// Colors (ඔබේ Web Project එකේ තිබූ වර්ණ)
+
 const COLORS = {
   teaGreen: '#84a98c',
   teaCream: '#f1f1e6',
@@ -21,85 +22,44 @@ const COLORS = {
 };
 
 const LoginScreen = () => {
-    const router = useRouter();
-    const [isLoginView, setIsLoginView] = useState(true);
-    const [fullName, setFullName] = useState('');
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false); // Success Modal එක සඳහා state එක
 
-  const handleAuth = () => {
+  const handleLogin = async () => {
+    if (!username || !password) {
+      Alert.alert("Error", "කරුණාකර පරිශීලක නාමය සහ මුරපදය ඇතුළත් කරන්න.");
+      return;
+    }
     setIsLoading(true);
     
-    // මෙතනට ඔබේ API එක හෝ Backend logic එක එකතු කරන්න
-    setTimeout(() => {
+    try {
+      const response = await loginUser({
+        email: username,
+        password: password
+      });
+      
       setIsLoading(false);
-      if (isLoginView) {
-        Alert.alert("Success", "සාදරයෙන් පිළිගන්නවා Ceylon Tea Portal එකට!");
+
+      if(response && response.status === "success"){
+        setShowSuccessModal(true); // සාර්ථක නම් Modal එක පෙන්වන්න
       } else {
-        Alert.alert("Success", "ගිණුම සාර්ථකව නිපදවන ලදී!");
-        setIsLoginView(true);
+        Alert.alert("Error", "ඇතුළත් කළ තොරතුරු වැරදියි. නැවත උත්සාහ කරන්න.");
       }
-    }, 2000);
+    } catch (error) {
+      setIsLoading(false);
+      Alert.alert("Error", "සම්බන්ධතාවය බිඳ වැටී ඇත. පසුව උත්සාහ කරන්න.");
+    }
   };
-
-  const handleRegister = async () => {
-
-  console.log("fjhd")
-
-  if (!fullName || !username || !password) {
-    console.log("jhd")
-    Alert.alert("Error", "කරුණාකර සියලු විස්තර ඇතුළත් කරන්න.");
-    return;
-  }
-
-  const formData = {
-    fullName: fullName,
-    username: username,
-    password: password
-  };
-
-  console.log(fullName);
-  console.log(username)
-
-  console.log("Registering user:", formData);
-
-  setIsLoading(true);
-
-  try {
-
-    await registerUser(formData);
-
-    setIsLoading(false);
-
-    Alert.alert("Success", "ගිණුම සාර්ථකව නිපදවන ලදී!");
-
-    // register success -> login view
-    setIsLoginView(true);
-
-    // inputs clear
-    setFullName('');
-    setUsername('');
-    setPassword('');
-
-  } catch (error) {
-
-    setIsLoading(false);
-
-    Alert.alert("Error", "දත්ත යැවීමේදී දෝෂයක් ඇති විය.");
-
-  }
-};
-  
 
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
       style={styles.mainContainer}
     >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        
-        {/* Top Header Section with Image */}
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
         <View style={styles.headerImageContainer}>
           <ImageBackground 
             source={{ uri: 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?q=80&w=1000' }}
@@ -115,30 +75,12 @@ const LoginScreen = () => {
           </ImageBackground>
         </View>
 
-        {/* Form Section */}
         <View style={styles.formContainer}>
           <View style={styles.glassCard}>
-            <Text style={styles.viewTitle}>{isLoginView ? 'Sign In' : 'Register'}</Text>
-            <Text style={styles.viewSubtitle}>
-              {isLoginView ? 'Welcome back to your dashboard.' : 'Enter your details to join the portal.'}
-            </Text>
+            <Text style={styles.viewTitle}>Sign In</Text>
+            <Text style={styles.viewSubtitle}>Welcome back to your dashboard.</Text>
 
             <View style={styles.inputWrapper}>
-              {!isLoginView && (
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Full Name</Text>
-                  <View style={styles.inputBox}>
-                    <UserCircle color={COLORS.teaDark} opacity={0.3} size={20} style={styles.inputIcon} />
-                    <TextInput 
-                      style={styles.input} 
-                      placeholder="Enter full name"
-                      value={fullName}
-                      onChangeText={setFullName}
-                    />
-                  </View>
-                </View>
-              )}
-
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Username</Text>
                 <View style={styles.inputBox}>
@@ -169,14 +111,14 @@ const LoginScreen = () => {
 
               <TouchableOpacity 
                 style={styles.mainButton} 
-                onPress={handleRegister}
+                onPress={handleLogin}
                 disabled={isLoading}
               >
                 {isLoading ? (
                   <ActivityIndicator color={COLORS.white} />
                 ) : (
                   <>
-                    <Text style={styles.buttonText}>{isLoginView ? 'Sign In' : 'Create Account'}</Text>
+                    <Text style={styles.buttonText}>Sign In</Text>
                     <ArrowRight color={COLORS.white} size={20} />
                   </>
                 )}
@@ -184,157 +126,137 @@ const LoginScreen = () => {
             </View>
 
             <View style={styles.footer}>
-              <Text style={styles.footerText}>
-                {isLoginView ? "Don't have an account?" : "Already a member?"}
-              </Text>
-              <TouchableOpacity onPress={() => setIsLoginView(!isLoginView)}>
-                <Text style={styles.toggleText}>
-                  {isLoginView ? "Create an account now" : "Back to Sign In"}
-                </Text>
+              <Text style={styles.footerText}>Don't have an account? </Text>
+              <TouchableOpacity onPress={() => router.push('/register')}>
+                <Text style={styles.registerLink}>Create Account</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
+
+        {/* --- Custom Success Notification Modal --- */}
+        <Modal 
+          visible={showSuccessModal} 
+          transparent 
+          animationType="fade"
+        >
+          <View style={styles.modalBackdrop}>
+            <View style={styles.successCard}>
+              <View style={styles.iconCircle}>
+                <CheckCircle2 color={COLORS.white} size={50} />
+              </View>
+              
+              <Text style={styles.successTitle}>සාදරයෙන් පිළිගනිමු!</Text>
+              <Text style={styles.successMsg}>
+                ඔබ සාර්ථකව Ceylon Tea Portal පද්ධතියට ඇතුළු විය. ඔබගේ දිනපතා කටයුතු දැන් ආරම්භ කරන්න.
+              </Text>
+
+              <TouchableOpacity 
+                style={styles.modalButton}
+                onPress={() => {
+                  setShowSuccessModal(false);
+                  router.replace('/dashbord'); 
+                }}
+              >
+                <Text style={styles.modalButtonText}>Dashboard වෙත යන්න</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
       </ScrollView>
     </KeyboardAvoidingView>
   );
 };
 
+
 const styles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-    backgroundColor: COLORS.teaCream,
+  mainContainer: { flex: 1, backgroundColor: COLORS.teaCream },
+  headerImageContainer: { height: 300 },
+  headerImage: { flex: 1, justifyContent: 'flex-end' },
+  overlay: { padding: 30, backgroundColor: 'rgba(47, 62, 70, 0.6)', flex: 1, justifyContent: 'center', alignItems: 'center' },
+  logoBadge: { backgroundColor: COLORS.teaCream, padding: 10, borderRadius: 50, marginBottom: 10 },
+  headerSubtitle: { color: COLORS.white, fontSize: 10, fontWeight: 'bold', letterSpacing: 2 },
+  headerTitle: { color: COLORS.white, fontSize: 32, fontWeight: 'bold', fontStyle: 'italic' },
+  formContainer: { marginTop: -50, paddingHorizontal: 20, paddingBottom: 40 },
+  glassCard: { backgroundColor: COLORS.white, borderRadius: 40, padding: 30, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 15, elevation: 8 },
+  viewTitle: { fontSize: 32, color: COLORS.teaDark, fontWeight: '600' },
+  viewSubtitle: { fontSize: 14, color: COLORS.teaDark, opacity: 0.5, fontStyle: 'italic', marginBottom: 25 },
+  inputWrapper: { gap: 15 },
+  inputGroup: { gap: 5 },
+  label: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 'bold', color: COLORS.teaDark, opacity: 0.4, marginLeft: 5 },
+  inputBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderWidth: 1, borderColor: 'rgba(47, 62, 70, 0.1)', borderRadius: 18, paddingHorizontal: 15, height: 55 },
+  inputIcon: { marginRight: 10 },
+  input: { flex: 1, fontSize: 16, color: COLORS.teaDark },
+  mainButton: { backgroundColor: COLORS.teaGreen, height: 60, borderRadius: 30, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, marginTop: 20, shadowColor: COLORS.teaGreen, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
+  buttonText: { color: COLORS.white, fontSize: 18, fontWeight: 'bold' },
+  footer: { 
+    marginTop: 30, 
+    paddingTop: 20, 
+    borderTopWidth: 1, 
+    borderTopColor: 'rgba(47, 62, 70, 0.05)', 
+    flexDirection: 'row', 
+    justifyContent: 'center',
+    alignItems: 'center' 
   },
-  headerImageContainer: {
-    height: 250,
-  },
-  headerImage: {
+  footerText: { color: COLORS.teaDark, opacity: 0.6, fontSize: 14 },
+  registerLink: { color: COLORS.teaGreen, fontWeight: 'bold', fontSize: 14 },
+
+  // --- Success Modal Styles ---
+  modalBackdrop: {
     flex: 1,
-    justifyContent: 'flex-end',
-  },
-  overlay: {
-    padding: 30,
-    backgroundColor: 'rgba(47, 62, 70, 0.6)', // tea-dark with transparency
-    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20
   },
-  logoBadge: {
-    backgroundColor: COLORS.teaCream,
-    padding: 10,
-    borderRadius: 50,
-    marginBottom: 10,
-  },
-  headerSubtitle: {
-    color: COLORS.white,
-    fontSize: 10,
-    fontWeight: 'bold',
-    letterSpacing: 2,
-  },
-  headerTitle: {
-    color: COLORS.white,
-    fontSize: 32,
-    fontWeight: 'bold',
-    fontStyle: 'italic',
-  },
-  formContainer: {
-    marginTop: -40,
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  glassCard: {
+  successCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 40,
+    width: '100%',
+    borderRadius: 30,
     padding: 30,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 15,
-    elevation: 8,
+    alignItems: 'center',
   },
-  viewTitle: {
-    fontSize: 32,
-    color: COLORS.teaDark,
-    fontWeight: '600',
+  iconCircle: {
+    width: 80,
+    height: 80,
+    backgroundColor: COLORS.teaGreen,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: COLORS.teaGreen,
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 10
   },
-  viewSubtitle: {
-    fontSize: 14,
-    color: COLORS.teaDark,
-    opacity: 0.5,
-    fontStyle: 'italic',
-    marginBottom: 25,
-  },
-  inputWrapper: {
-    gap: 15,
-  },
-  inputGroup: {
-    gap: 5,
-  },
-  label: {
-    fontSize: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+  successTitle: {
+    fontSize: 24,
     fontWeight: 'bold',
     color: COLORS.teaDark,
-    opacity: 0.4,
-    marginLeft: 5,
+    marginBottom: 10
   },
-  inputBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: 'rgba(47, 62, 70, 0.1)',
-    borderRadius: 18,
-    paddingHorizontal: 15,
-    height: 55,
-  },
-  inputIcon: {
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
+  successMsg: {
     fontSize: 16,
     color: COLORS.teaDark,
+    textAlign: 'center',
+    opacity: 0.6,
+    lineHeight: 22,
+    marginBottom: 25
   },
-  mainButton: {
-    backgroundColor: COLORS.teaGreen,
-    height: 60,
-    borderRadius: 30,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 20,
-    shadowColor: COLORS.teaGreen,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+  modalButton: {
+    backgroundColor: COLORS.teaDark,
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 20,
+    width: '100%',
+    alignItems: 'center'
   },
-  buttonText: {
+  modalButtonText: {
     color: COLORS.white,
-    fontSize: 18,
     fontWeight: 'bold',
-  },
-  footer: {
-    marginTop: 30,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(47, 62, 70, 0.05)',
-    alignItems: 'center',
-  },
-  footerText: {
-    color: COLORS.teaDark,
-    opacity: 0.4,
-    fontSize: 12,
-  },
-  toggleText: {
-    color: COLORS.teaGreen,
-    fontWeight: 'bold',
-    textDecorationLine: 'underline',
-    marginTop: 5,
-  },
+    fontSize: 16
+  }
 });
 
 export default LoginScreen;

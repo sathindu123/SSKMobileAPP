@@ -1,31 +1,72 @@
-import React, { useState } from 'react';
-import { 
-  View, Text, StyleSheet, ScrollView, TextInput, 
-  TouchableOpacity, SafeAreaView, StatusBar, 
-  Alert, KeyboardAvoidingView, Platform 
-} from 'react-native';
-import { 
-  LayoutDashboard, UserPlus, Search, Home, 
-  Save, Edit3, Trash2, ChevronRight, Phone, 
-  MapPin, Hash, User
-} from 'lucide-react-native';
+import { saveCustomer } from '@/src/service/customerService';
 import { useRouter } from 'expo-router';
+import {
+  CheckCircle2,
+  Edit3,
+  Hash,
+  Home,
+  MapPin,
+  Phone,
+  Save,
+  Search,
+  Trash2,
+  User,
+  UserPlus
+} from 'lucide-react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  ActivityIndicator,
+  Alert, KeyboardAvoidingView,
+  KeyboardTypeOptions,
+  Modal,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
-// Dashboard එකේ වර්ණ පද්ධතිය (Same Palette)
 const COLORS = {
-  primary: '#113023',    // Forest Green
-  secondary: '#2D6A4F',  // Mid Green
-  accent: '#D4AF37',     // Premium Gold
-  bg: '#F4F7F5',         // Soft Grey
+  primary: '#113023',    
+  secondary: '#2D6A4F',  
+  accent: '#D4AF37',     
+  bg: '#F4F7F5',         
   white: '#ffffff',
   danger: '#E63946',
-  leaf: '#74C69D'
+  leaf: '#74C69D',
+  teaGreen: '#84a98c',
 };
+
+// Interfaces for TypeScript Errors
+interface InputFieldProps {
+  label: string;
+  placeholder: string;
+  icon: React.ReactNode;
+  keyboardType?: KeyboardTypeOptions;
+  onChange: (text: string) => void;
+}
+
+interface CustomerItemProps {
+  name: string;
+  id: string;
+  address: string;
+  tel: string;
+  status: string;
+}
+
+useEffect(() => {
+  loadCustomers();
+}, []);
 
 const CustomerPortal = () => {
   const router = useRouter();
-  
-  // States
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
   const [formData, setFormData] = useState({
     customerId: '',
     customerName: '',
@@ -33,26 +74,53 @@ const CustomerPortal = () => {
     tel: ''
   });
 
+  const [customers, setCustomers] = useState([]);
+
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Functions
-  const handleSave = () => {
-    if (!formData.customerId || !formData.customerName) {
-      Alert.alert("අවධානය", "කරුණාකර අනිවාර්ය විස්තර ඇතුළත් කරන්න.");
+  const loadCustomers = async () => {
+    try{
+      // const data = await getCustomers();
+      // setCustomers(data);
+    }catch(error){
+      Alert.alert("err");
+    }
+    
+  };
+ 
+  // Handle Save Method
+  const handleSave = async () => {
+    if (!formData.customerId || !formData.customerName || !formData.tel) {
+      Alert.alert("අවධානය", "කරුණාකර අත්‍යවශ්‍ය තොරතුරු (ID, නම සහ දුරකථන අංකය) ඇතුළත් කරන්න.");
       return;
     }
-    Alert.alert("සාර්ථකයි", "පාරිභෝගික විස්තර පද්ධතියට ඇතුළත් කරන ලදී.");
+
+    setIsLoading(true);
+    try {
+      const response = await saveCustomer(formData);
+      setIsLoading(false);
+      setFormData({ customerId: '', customerName: '', address: '', tel: '' });
+      if (response === "Success") {
+        setShowSuccessModal(true);
+        // Form එක clear කිරීමට අවශ්‍ය නම්:
+      } else {
+        Alert.alert("Error", response|| "දත්ත සුරැකීමට නොහැකි විය.");
+      }
+    } catch (error) {
+      setIsLoading(false);
+      Alert.alert("Error", "සර්වර් පද්ධතිය සමඟ සම්බන්ධ වීමට නොහැක.");
+    }
   };
 
   const handleBack = () => {
-    router.replace('/dashbord'); // හෝ router.back();
+    router.replace('/dashbord'); 
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       
-      {/* --- Custom Navbar --- */}
+      {/* Navbar */}
       <View style={styles.navbar}>
         <View style={styles.navLeft}>
           <View style={styles.iconBg}>
@@ -72,7 +140,6 @@ const CustomerPortal = () => {
       >
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollBody}>
           
-          {/* --- Header & Stats --- */}
           <View style={styles.headerSection}>
             <View>
               <Text style={styles.mainTitle}>Customer Management</Text>
@@ -90,21 +157,52 @@ const CustomerPortal = () => {
             </View>
           </View>
 
-          {/* --- Data Entry Form (Bento Style) --- */}
+          {/* Form Card */}
           <View style={styles.formCard}>
             <Text style={styles.cardHeader}>Customer Details</Text>
             
             <View style={styles.inputGroup}>
-              <InputField label="CUSTOMER ID" placeholder="#C-1001" icon={<Hash size={18} color={COLORS.primary} opacity={0.5} />} onChange={(val) => setFormData({...formData, customerId: val})} />
-              <InputField label="FULL NAME" placeholder="John Doe" icon={<User size={18} color={COLORS.primary} opacity={0.5} />} onChange={(val) => setFormData({...formData, customerName: val})} />
-              <InputField label="ADDRESS" placeholder="No 23, Colombo Rd" icon={<MapPin size={18} color={COLORS.primary} opacity={0.5} />} onChange={(val) => setFormData({...formData, address: val})} />
-              <InputField label="TELEPHONE" placeholder="+94 77 123 4567" icon={<Phone size={18} color={COLORS.primary} opacity={0.5} />} keyboardType="phone-pad" onChange={(val) => setFormData({...formData, tel: val})} />
+              <InputField 
+                label="CUSTOMER ID" 
+                placeholder="#C-1001" 
+                icon={<Hash size={18} color={COLORS.primary} opacity={0.5} />} 
+                onChange={(val) => setFormData({...formData, customerId: val})} 
+              />
+              <InputField 
+                label="FULL NAME" 
+                placeholder="John Doe" 
+                icon={<User size={18} color={COLORS.primary} opacity={0.5} />} 
+                onChange={(val) => setFormData({...formData, customerName: val})} 
+              />
+              <InputField 
+                label="ADDRESS" 
+                placeholder="No 23, Colombo Rd" 
+                icon={<MapPin size={18} color={COLORS.primary} opacity={0.5} />} 
+                onChange={(val) => setFormData({...formData, address: val})} 
+              />
+              <InputField 
+                label="TELEPHONE" 
+                placeholder="+94 77 123 4567" 
+                icon={<Phone size={18} color={COLORS.primary} opacity={0.5} />} 
+                keyboardType="phone-pad" 
+                onChange={(val) => setFormData({...formData, tel: val})} 
+              />
             </View>
 
             <View style={styles.actionRow}>
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-                <Save color={COLORS.white} size={20} />
-                <Text style={styles.saveBtnText}>SAVE CUSTOMER</Text>
+              <TouchableOpacity 
+                style={styles.saveBtn} 
+                onPress={handleSave}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color={COLORS.white} />
+                ) : (
+                  <>
+                    <Save color={COLORS.white} size={20} />
+                    <Text style={styles.saveBtnText}>SAVE CUSTOMER</Text>
+                  </>
+                )}
               </TouchableOpacity>
               
               <View style={styles.secondaryActions}>
@@ -118,7 +216,7 @@ const CustomerPortal = () => {
             </View>
           </View>
 
-          {/* --- Customer List / Directory --- */}
+          {/* List Section */}
           <View style={styles.listSection}>
             <View style={styles.listHeader}>
               <Text style={styles.cardHeader}>Customer Directory</Text>
@@ -132,7 +230,6 @@ const CustomerPortal = () => {
               </View>
             </View>
 
-            {/* Sample Customer Card */}
             <CustomerItem 
                name="John Doe" 
                id="#C-00124" 
@@ -140,27 +237,36 @@ const CustomerPortal = () => {
                tel="+94 77 123 4567" 
                status="Active" 
             />
-            <CustomerItem 
-               name="Mahesh Priyankara" 
-               id="#C-00125" 
-               address="Neluwa, Galle" 
-               tel="+94 71 456 7890" 
-               status="Active" 
-            />
-
-            <TouchableOpacity style={styles.viewMoreBtn}>
-               <Text style={styles.viewMoreText}>Load More Records</Text>
-            </TouchableOpacity>
           </View>
 
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Success Modal */}
+      <Modal visible={showSuccessModal} transparent animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.successCard}>
+            <View style={styles.iconCircle}>
+              <CheckCircle2 color={COLORS.white} size={50} />
+            </View>
+            <Text style={styles.successTitle}>සාර්ථකයි!</Text>
+            <Text style={styles.successMsg}>පාරිභෝගික තොරතුරු පද්ධතියට සාර්ථකව ඇතුළත් කරන ලදී.</Text>
+            <TouchableOpacity 
+              style={styles.modalButton}
+              onPress={() => setShowSuccessModal(false)}
+            >
+              <Text style={styles.modalButtonText}>හරි (OK)</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 };
 
-// Reusable Components
-const InputField = ({ label, placeholder, icon, keyboardType = "default", onChange }) => (
+// Reusable Components with TS Fixes
+const InputField: React.FC<InputFieldProps> = ({ label, placeholder, icon, keyboardType = "default", onChange }) => (
   <View style={styles.inputWrapper}>
     <Text style={styles.inputLabel}>{label}</Text>
     <View style={styles.inputBox}>
@@ -176,11 +282,11 @@ const InputField = ({ label, placeholder, icon, keyboardType = "default", onChan
   </View>
 );
 
-const CustomerItem = ({ name, id, address, tel, status }) => (
+const CustomerItem: React.FC<CustomerItemProps> = ({ name, id, address, tel, status }) => (
   <View style={styles.customerCard}>
     <View style={styles.customerInfo}>
       <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{name.split(' ').map(n => n[0]).join('')}</Text>
+        <Text style={styles.avatarText}>{name.split(' ').map((n) => n[0]).join('')}</Text>
       </View>
       <View style={{ flex: 1, marginLeft: 12 }}>
         <Text style={styles.customerName}>{name}</Text>
@@ -231,7 +337,7 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 9, fontWeight: 'bold', color: '#999' },
   statValue: { fontSize: 18, fontWeight: 'bold', color: COLORS.primary },
 
-  formCard: { backgroundColor: COLORS.white, borderRadius: 30, padding: 25, elevation: 4, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 15 },
+  formCard: { backgroundColor: COLORS.white, borderRadius: 30, padding: 25, elevation: 4 },
   cardHeader: { fontSize: 17, fontWeight: 'bold', color: COLORS.primary, marginBottom: 20 },
   inputGroup: { gap: 15 },
   inputWrapper: { gap: 5 },
@@ -240,7 +346,7 @@ const styles = StyleSheet.create({
   input: { flex: 1, marginLeft: 10, fontSize: 15, color: COLORS.primary, fontWeight: '500' },
   
   actionRow: { marginTop: 25, gap: 10 },
-  saveBtn: { backgroundColor: COLORS.primary, height: 55, borderRadius: 18, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, elevation: 3 },
+  saveBtn: { backgroundColor: COLORS.primary, height: 55, borderRadius: 18, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
   saveBtnText: { color: COLORS.white, fontWeight: 'bold', fontSize: 15 },
   secondaryActions: { flexDirection: 'row', gap: 10 },
   smallBtn: { flex: 1, height: 50, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
@@ -250,7 +356,6 @@ const styles = StyleSheet.create({
   searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.white, borderRadius: 20, paddingHorizontal: 12, height: 38, width: 140, borderWidth: 1, borderColor: '#eee' },
   searchInput: { flex: 1, marginLeft: 5, fontSize: 12 },
 
-  // Customer Card List
   customerCard: { backgroundColor: COLORS.white, borderRadius: 22, padding: 15, marginBottom: 12, elevation: 2 },
   customerInfo: { flexDirection: 'row', alignItems: 'center' },
   avatar: { width: 45, height: 45, borderRadius: 22, backgroundColor: '#e8f0ed', justifyContent: 'center', alignItems: 'center' },
@@ -263,8 +368,14 @@ const styles = StyleSheet.create({
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   detailText: { fontSize: 12, color: '#666' },
 
-  viewMoreBtn: { alignItems: 'center', marginTop: 10, padding: 10 },
-  viewMoreText: { color: COLORS.primary, fontWeight: 'bold', fontSize: 13, opacity: 0.5 }
+  // Modal Styles
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  successCard: { backgroundColor: COLORS.white, width: '100%', borderRadius: 30, padding: 30, alignItems: 'center' },
+  iconCircle: { width: 80, height: 80, backgroundColor: COLORS.teaGreen, borderRadius: 40, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  successTitle: { fontSize: 24, fontWeight: 'bold', color: COLORS.primary, marginBottom: 10 },
+  successMsg: { fontSize: 16, color: '#666', textAlign: 'center', marginBottom: 25 },
+  modalButton: { backgroundColor: COLORS.primary, paddingVertical: 15, width: '100%', borderRadius: 20, alignItems: 'center' },
+  modalButtonText: { color: COLORS.white, fontWeight: 'bold', fontSize: 16 }
 });
 
 export default CustomerPortal;
