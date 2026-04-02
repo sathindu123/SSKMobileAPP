@@ -66,7 +66,7 @@ const RegisterScreen = () => {
         >
           <View style={styles.overlay}>
             <Leaf color={COLORS.white} size={40} />
-            <Text style={styles.heroTitle}>Join Our Heritage.</Text>
+            <Text style={styles.heroTitle}>SSK GROUP</Text>
             <Text style={styles.heroSubtitle}>Become a part of the world's finest tea management network.</Text>
           </View>
         </ImageBackground>

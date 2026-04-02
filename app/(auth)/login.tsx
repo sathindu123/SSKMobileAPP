@@ -70,7 +70,7 @@ const LoginScreen = () => {
                 <Leaf color={COLORS.teaGreen} size={30} />
               </View>
               <Text style={styles.headerSubtitle}>THE HERITAGE OF PURE TEA</Text>
-              <Text style={styles.headerTitle}>Ceylon Tea Portal</Text>
+              <Text style={styles.headerTitle}>SSK GROUP Tea Portal</Text>
             </View>
           </ImageBackground>
         </View>
@@ -148,7 +148,7 @@ const LoginScreen = () => {
               
               <Text style={styles.successTitle}>සාදරයෙන් පිළිගනිමු!</Text>
               <Text style={styles.successMsg}>
-                ඔබ සාර්ථකව Ceylon Tea Portal පද්ධතියට ඇතුළු විය. ඔබගේ දිනපතා කටයුතු දැන් ආරම්භ කරන්න.
+                ඔබ සාර්ථකව SSK GROUP Tea Portal පද්ධතියට ඇතුළු විය. ඔබගේ දිනපතා කටයුතු දැන් ආරම්භ කරන්න.
               </Text>
 
               <TouchableOpacity 

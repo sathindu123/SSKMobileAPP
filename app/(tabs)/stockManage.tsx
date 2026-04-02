@@ -4,6 +4,7 @@ import {
    AlertCircle,
    ArrowLeft,
    Box,
+   CheckCircle2,
    Hash,
    Package,
    Save,
@@ -12,7 +13,8 @@ import {
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
-   Alert, KeyboardAvoidingView, Platform,
+   ActivityIndicator,
+   Alert, KeyboardAvoidingView, Modal, Platform,
    SafeAreaView,
    ScrollView,
    StatusBar,
@@ -31,11 +33,14 @@ const COLORS = {
   bg: '#F4F7F5',         // Soft Grey
   white: '#ffffff',
   danger: '#E63946',
-  leaf: '#74C69D'
+  leaf: '#74C69D',
+  teaGreen: '#84a98c',
 };
 
 const StockManagement = () => {
-  const router = useRouter();
+   const [isLoading, setIsLoading] = useState(false);
+   const router = useRouter();
+   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
 
   const [formData, setFormData] = useState({
@@ -46,16 +51,26 @@ const StockManagement = () => {
   });
 
   const handleSaveStock = async () => {
+   setIsLoading(true);
     if (!formData.productName || !formData.count || !formData.price) {
       Alert.alert("අවධානය", "කරුණාකර සියලු විස්තර ඇතුළත් කරන්න.");
+      setIsLoading(false);
       return;
     }
     const res = await saveStock(formData);
-    
-    Alert.alert("mse",res);
-    
-    Alert.alert("සාර්ථකයි", "තොග විස්තර පද්ධතියට එක් කරන ලදී.");
+    setIsLoading(false);
+    setShowSuccessModal(true);
+    clearFormData();
   };
+
+  const clearFormData = () =>{
+   setFormData({
+      id: '',
+      productName: '',
+      count: '',
+      price: ''
+      });
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -70,7 +85,7 @@ const StockManagement = () => {
           <Text style={styles.navTitle}>Stock Manage</Text>
           <Text style={styles.navSub}>Inventory & Supplies</Text>
         </View>
-        <View style={styles.iconCircle}>
+        <View style={styles.iconCircle2}>
           <Box color={COLORS.accent} size={20} />
         </View>
       </View>
@@ -106,7 +121,8 @@ const StockManagement = () => {
                   <View style={styles.inputBox}>
                      <Hash color={COLORS.primary} opacity={0.4} size={16} />
                      <TextInput 
-                        style={styles.input} 
+                        style={styles.input}
+                        value={formData.id}  
                         placeholder="#P-501" 
                         onChangeText={(val) => setFormData({...formData, id: val})}
                      />
@@ -118,7 +134,8 @@ const StockManagement = () => {
                   <View style={styles.inputBox}>
                      <ShoppingBag color={COLORS.primary} opacity={0.4} size={16} />
                      <TextInput 
-                        style={styles.input} 
+                        style={styles.input}
+                        value={formData.productName}  
                         placeholder="පොහොර මල්ල (50kg)" 
                         onChangeText={(val) => setFormData({...formData, productName: val})}
                      />
@@ -132,6 +149,7 @@ const StockManagement = () => {
                         <Tag color={COLORS.primary} opacity={0.4} size={16} />
                         <TextInput 
                            style={styles.input} 
+                           value={formData.count} 
                            placeholder="00" 
                            keyboardType="numeric"
                            onChangeText={(val) => setFormData({...formData, count: val})}
@@ -144,6 +162,7 @@ const StockManagement = () => {
                         <Text style={styles.currency}>Rs.</Text>
                         <TextInput 
                            style={styles.input} 
+                           value={formData.price} 
                            placeholder="0.00" 
                            keyboardType="numeric"
                            onChangeText={(val) => setFormData({...formData, price: val})}
@@ -152,9 +171,19 @@ const StockManagement = () => {
                   </View>
                </View>
 
-               <TouchableOpacity style={styles.saveBtn} onPress={handleSaveStock}>
-                  <Save color={COLORS.white} size={20} />
-                  <Text style={styles.saveBtnText}>SAVE TO INVENTORY</Text>
+              <TouchableOpacity 
+                  style={styles.saveBtn} 
+                  onPress={handleSaveStock} 
+                  disabled={isLoading}
+                  >
+                  {isLoading ? (
+                     <ActivityIndicator color={COLORS.white} />
+                  ) : (
+                     <>
+                        <Save color={COLORS.white} size={20} />
+                        <Text style={styles.saveBtnText}>SAVE TO INVENTORY</Text>
+                     </>
+                  )}
                </TouchableOpacity>
             </View>
           </View>
@@ -176,6 +205,23 @@ const StockManagement = () => {
 
         </ScrollView>
       </KeyboardAvoidingView>
+            <Modal visible={showSuccessModal} transparent animationType="fade">
+               <View style={styles.modalBackdrop}>
+                  <View style={styles.successCard}>
+                     <View style={styles.iconCircle}>
+                     <CheckCircle2 color={COLORS.white} size={50} />
+                     </View>
+                     <Text style={styles.successTitle}>සාර්ථකයි!</Text>
+                     <Text style={styles.successMsg}>තොරතුරු පද්ධතියට සාර්ථකව ඇතුළත් කරන ලදී.</Text>
+                     <TouchableOpacity 
+                     style={styles.modalButton}
+                     onPress={() => setShowSuccessModal(false)}
+                     >
+                     <Text style={styles.modalButtonText}>හරි (OK)</Text>
+                     </TouchableOpacity>
+                  </View>
+               </View>
+               </Modal>
     </SafeAreaView>
   );
 };
@@ -217,7 +263,7 @@ const styles = StyleSheet.create({
   backBtn: { padding: 8, backgroundColor: COLORS.bg, borderRadius: 12 },
   navTitle: { fontSize: 20, fontWeight: 'bold', color: COLORS.primary },
   navSub: { fontSize: 10, color: COLORS.accent, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 },
-  iconCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.bg, justifyContent: 'center', alignItems: 'center' },
+  iconCircle2: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.bg, justifyContent: 'center', alignItems: 'center' },
 
   scrollBody: { padding: 20 },
   
@@ -264,7 +310,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 12, 
     paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f5f5f5' 
   },
-  alertText: { fontSize: 11, color: COLORS.danger, fontWeight: '600' }
+  alertText: { fontSize: 11, color: COLORS.danger, fontWeight: '600' },
+   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+   successCard: { backgroundColor: COLORS.white, width: '100%', borderRadius: 30, padding: 30, alignItems: 'center' },
+  iconCircle: { width: 80, height: 80, backgroundColor: COLORS.teaGreen, borderRadius: 40, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  successTitle: { fontSize: 24, fontWeight: 'bold', color: COLORS.primary, marginBottom: 10 },
+  successMsg: { fontSize: 16, color: '#666', textAlign: 'center', marginBottom: 25 },
+  modalButton: { backgroundColor: COLORS.primary, paddingVertical: 15, width: '100%', borderRadius: 20, alignItems: 'center' },
+  modalButtonText: { color: COLORS.white, fontWeight: 'bold', fontSize: 16 }
+
 });
 
 export default StockManagement;

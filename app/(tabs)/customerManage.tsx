@@ -1,17 +1,17 @@
-import { saveCustomer } from '@/src/service/customerService';
+import { saveCustomer, getCustomers } from '@/src/service/customerService';
 import { useRouter } from 'expo-router';
 import {
   CheckCircle2,
-  Edit3,
   Hash,
   Home,
   MapPin,
   Phone,
   Save,
   Search,
-  Trash2,
   User,
-  UserPlus
+  UserPlus,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react-native';
 import React, { useState, useEffect } from 'react';
 import {
@@ -48,6 +48,7 @@ interface InputFieldProps {
   icon: React.ReactNode;
   keyboardType?: KeyboardTypeOptions;
   onChange: (text: string) => void;
+  value?: string;
 }
 
 interface CustomerItemProps {
@@ -57,10 +58,6 @@ interface CustomerItemProps {
   tel: string;
   status: string;
 }
-
-useEffect(() => {
-  loadCustomers();
-}, []);
 
 const CustomerPortal = () => {
   const router = useRouter();
@@ -74,18 +71,27 @@ const CustomerPortal = () => {
     tel: ''
   });
 
+  // Pagination States
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
   const [customers, setCustomers] = useState([]);
+
+  useEffect(() => {
+    loadCustomers();
+  }, [currentPage]); // පිටුව වෙනස් වන සෑම විටම දත්ත ලබා ගනී
 
   const [searchQuery, setSearchQuery] = useState('');
 
   const loadCustomers = async () => {
-    try{
-      // const data = await getCustomers();
-      // setCustomers(data);
-    }catch(error){
-      Alert.alert("err");
+    setIsLoading(true);
+    try {
+      // Service එකට වර්තමාන පිටුව සහ ප්‍රමාණය යවයි
+      const data = await getCustomers(currentPage, itemsPerPage);
+      setCustomers(data);
+    } catch (error) {
+      Alert.alert("Error", "දත්ත ලබාගැනීමට නොහැකි විය.");
     }
-    
+    setIsLoading(false);
   };
  
   // Handle Save Method
@@ -99,12 +105,13 @@ const CustomerPortal = () => {
     try {
       const response = await saveCustomer(formData);
       setIsLoading(false);
-      setFormData({ customerId: '', customerName: '', address: '', tel: '' });
       if (response === "Success") {
         setShowSuccessModal(true);
-        // Form එක clear කිරීමට අවශ්‍ය නම්:
+        setFormData({ customerId: '', customerName: '', address: '', tel: '' });
+        setCurrentPage(1); 
+        loadCustomers();
       } else {
-        Alert.alert("Error", response|| "දත්ත සුරැකීමට නොහැකි විය.");
+        Alert.alert("Error", response || "දත්ත සුරැකීමට නොහැකි විය.");
       }
     } catch (error) {
       setIsLoading(false);
@@ -147,12 +154,12 @@ const CustomerPortal = () => {
             </View>
             <View style={styles.statsRow}>
               <View style={styles.statBox}>
-                <Text style={styles.statLabel}>TOTAL</Text>
-                <Text style={styles.statValue}>1,284</Text>
+                <Text style={styles.statLabel}>PAGE</Text>
+                <Text style={styles.statValue}>{currentPage}</Text>
               </View>
               <View style={[styles.statBox, { borderColor: COLORS.leaf }]}>
-                <Text style={styles.statLabel}>ACTIVE</Text>
-                <Text style={[styles.statValue, { color: COLORS.leaf }]}>42</Text>
+                <Text style={styles.statLabel}>LOADED</Text>
+                <Text style={[styles.statValue, { color: COLORS.leaf }]}>{customers.length}</Text>
               </View>
             </View>
           </View>
@@ -165,24 +172,28 @@ const CustomerPortal = () => {
               <InputField 
                 label="CUSTOMER ID" 
                 placeholder="#C-1001" 
+                value={formData.customerId}
                 icon={<Hash size={18} color={COLORS.primary} opacity={0.5} />} 
                 onChange={(val) => setFormData({...formData, customerId: val})} 
               />
               <InputField 
                 label="FULL NAME" 
                 placeholder="John Doe" 
+                value={formData.customerName}
                 icon={<User size={18} color={COLORS.primary} opacity={0.5} />} 
                 onChange={(val) => setFormData({...formData, customerName: val})} 
               />
               <InputField 
                 label="ADDRESS" 
                 placeholder="No 23, Colombo Rd" 
+                value={formData.address}
                 icon={<MapPin size={18} color={COLORS.primary} opacity={0.5} />} 
                 onChange={(val) => setFormData({...formData, address: val})} 
               />
               <InputField 
                 label="TELEPHONE" 
                 placeholder="+94 77 123 4567" 
+                value={formData.tel}
                 icon={<Phone size={18} color={COLORS.primary} opacity={0.5} />} 
                 keyboardType="phone-pad" 
                 onChange={(val) => setFormData({...formData, tel: val})} 
@@ -204,15 +215,6 @@ const CustomerPortal = () => {
                   </>
                 )}
               </TouchableOpacity>
-              
-              <View style={styles.secondaryActions}>
-                <TouchableOpacity style={[styles.smallBtn, { backgroundColor: '#F59E0B' }]}>
-                  <Edit3 color={COLORS.white} size={18} />
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.smallBtn, { backgroundColor: COLORS.danger }]}>
-                  <Trash2 color={COLORS.white} size={18} />
-                </TouchableOpacity>
-              </View>
             </View>
           </View>
 
@@ -230,13 +232,45 @@ const CustomerPortal = () => {
               </View>
             </View>
 
-            <CustomerItem 
-               name="John Doe" 
-               id="#C-00124" 
-               address="No 12, Kandy Road" 
-               tel="+94 77 123 4567" 
-               status="Active" 
-            />
+            {isLoading ? (
+              <ActivityIndicator color={COLORS.primary} style={{ margin: 20 }} />
+            ) : (
+              customers.map((c:any,index:number)=>(
+                <CustomerItem
+                  key={index}
+                  name={c.customerName}
+                  id={c.customerId}
+                  address={c.address}
+                  tel={c.tel}
+                  status="Active"
+                />
+              ))
+            )}
+
+            {/* Pagination UI */}
+            <View style={styles.paginationContainer}>
+                <TouchableOpacity 
+                    style={[styles.pageButton, currentPage === 1 && { opacity: 0.4 }]}
+                    onPress={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1 || isLoading}
+                >
+                    <ChevronLeft color={COLORS.white} size={20} />
+                    <Text style={styles.pageButtonText}>Prev</Text>
+                </TouchableOpacity>
+
+                <View style={styles.pageIndicator}>
+                    <Text style={styles.pageIndicatorText}>{currentPage}</Text>
+                </View>
+
+                <TouchableOpacity 
+                    style={[styles.pageButton, customers.length < itemsPerPage && { opacity: 0.4 }]}
+                    onPress={() => setCurrentPage(prev => prev + 1)}
+                    disabled={customers.length < itemsPerPage || isLoading}
+                >
+                    <Text style={styles.pageButtonText}>Next</Text>
+                    <ChevronRight color={COLORS.white} size={20} />
+                </TouchableOpacity>
+            </View>
           </View>
 
         </ScrollView>
@@ -265,8 +299,8 @@ const CustomerPortal = () => {
   );
 };
 
-// Reusable Components with TS Fixes
-const InputField: React.FC<InputFieldProps> = ({ label, placeholder, icon, keyboardType = "default", onChange }) => (
+// Reusable Components
+const InputField: React.FC<InputFieldProps> = ({ label, placeholder, icon, keyboardType = "default", onChange, value }) => (
   <View style={styles.inputWrapper}>
     <Text style={styles.inputLabel}>{label}</Text>
     <View style={styles.inputBox}>
@@ -277,6 +311,7 @@ const InputField: React.FC<InputFieldProps> = ({ label, placeholder, icon, keybo
         keyboardType={keyboardType}
         placeholderTextColor="#999"
         onChangeText={onChange}
+        value={value}
       />
     </View>
   </View>
@@ -286,7 +321,7 @@ const CustomerItem: React.FC<CustomerItemProps> = ({ name, id, address, tel, sta
   <View style={styles.customerCard}>
     <View style={styles.customerInfo}>
       <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{name.split(' ').map((n) => n[0]).join('')}</Text>
+        <Text style={styles.avatarText}>{name ? name.charAt(0) : 'C'}</Text>
       </View>
       <View style={{ flex: 1, marginLeft: 12 }}>
         <Text style={styles.customerName}>{name}</Text>
@@ -348,8 +383,6 @@ const styles = StyleSheet.create({
   actionRow: { marginTop: 25, gap: 10 },
   saveBtn: { backgroundColor: COLORS.primary, height: 55, borderRadius: 18, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
   saveBtnText: { color: COLORS.white, fontWeight: 'bold', fontSize: 15 },
-  secondaryActions: { flexDirection: 'row', gap: 10 },
-  smallBtn: { flex: 1, height: 50, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
 
   listSection: { marginTop: 30, paddingBottom: 20 },
   listHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
@@ -368,7 +401,13 @@ const styles = StyleSheet.create({
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   detailText: { fontSize: 12, color: '#666' },
 
-  // Modal Styles
+  // Pagination Styles
+  paginationContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 20, gap: 10 },
+  pageButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.primary, paddingHorizontal: 15, paddingVertical: 10, borderRadius: 12, gap: 5 },
+  pageButtonText: { color: COLORS.white, fontWeight: 'bold', fontSize: 14 },
+  pageIndicator: { backgroundColor: COLORS.white, width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: COLORS.primary },
+  pageIndicatorText: { color: COLORS.primary, fontWeight: 'bold', fontSize: 16 },
+
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   successCard: { backgroundColor: COLORS.white, width: '100%', borderRadius: 30, padding: 30, alignItems: 'center' },
   iconCircle: { width: 80, height: 80, backgroundColor: COLORS.teaGreen, borderRadius: 40, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },

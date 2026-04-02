@@ -3,12 +3,16 @@ import {saveTeaLeaf} from '@/src/service/dailyTeaLeafService';
 import { 
   View, Text, StyleSheet, ScrollView, TextInput, 
   TouchableOpacity, SafeAreaView, StatusBar, 
-  Alert, KeyboardAvoidingView, Platform 
+  Alert, KeyboardAvoidingView, Platform, 
+  ActivityIndicator,
+  Modal,
+  TextInputSubmitEditingEvent
 } from 'react-native';
 import { 
   LayoutGrid, Calendar, Clock, LogOut, 
   Save, Trash2, Plus, Leaf, Hash, User,
-  TrendingUp, ArrowLeft
+  TrendingUp, ArrowLeft,
+  CheckCircle2
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
@@ -19,13 +23,15 @@ const COLORS = {
   bg: '#F4F7F5',         // Soft Grey
   white: '#ffffff',
   danger: '#E63946',
-  leaf: '#74C69D'
+  leaf: '#74C69D',
+  teaGreen: '#84a98c'
 };
 
 const DailyUpdate = () => {
   const router = useRouter();
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
   const [totalWeight, setTotalWeight] = useState(0.00);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Form States
   const [farmerId, setFarmerId] = useState('');
@@ -33,7 +39,7 @@ const DailyUpdate = () => {
   const [date, setFarmerDate] = useState('');
   const [goldLeaves, setGoldLeaves] = useState('');
   const [goodLeaves, setGoodLeaves] = useState('');
-  
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // Clock Update
   useEffect(() => {
@@ -42,9 +48,11 @@ const DailyUpdate = () => {
   }, []);
 
   const handleSaveRecord = async () => {
+    setIsLoading(true);
     if (!farmerId || !goldLeaves || !goodLeaves || !date) {
       Alert.alert("අවධානය", "කරුණාකර අනිවාර්ය දත්ත ඇතුළත් කරන්න.");
       return;
+      setIsLoading(false);
     }
     
     const formData = {
@@ -56,8 +64,8 @@ const DailyUpdate = () => {
     }
 
     const res = await saveTeaLeaf(formData);
-    Alert.alert("Message",res);
-
+    setIsLoading(false);
+    setShowSuccessModal(true);
     clearInputFeild();
   };
 
@@ -69,6 +77,9 @@ const DailyUpdate = () => {
     setGoodLeaves('');
   }
 
+  function handleSaveStock(e: TextInputSubmitEditingEvent): void {
+    Alert.alert('Function not implemented.');
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -124,6 +135,7 @@ const DailyUpdate = () => {
                   placeholder="#C-001" 
                   value={farmerId}
                   onChangeText={setFarmerId}
+                   onSubmitEditing={handleSaveStock}
                 />
              </View>
              <View style={styles.inputHalf}>
@@ -169,9 +181,19 @@ const DailyUpdate = () => {
              </View>
           </View>
 
-          <TouchableOpacity style={styles.addBtn} onPress={handleSaveRecord}>
-             <Plus color={COLORS.white} size={20} />
-             <Text style={styles.addBtnText}>ADD TO TABLE</Text>
+          <TouchableOpacity 
+              style={styles.saveBtn} 
+              onPress={handleSaveRecord} 
+              disabled={isLoading}
+          >
+                            {isLoading ? (
+                               <ActivityIndicator color={COLORS.white} />
+                            ) : (
+                               <>
+                                  <Save color={COLORS.white} size={20} />
+                                  <Text style={styles.saveBtnText}>ADD TO TABLE</Text>
+                               </>
+                            )}
           </TouchableOpacity>
         </View>
 
@@ -196,6 +218,23 @@ const DailyUpdate = () => {
         </View>
 
       </ScrollView>
+      <Modal visible={showSuccessModal} transparent animationType="fade">
+               <View style={styles.modalBackdrop}>
+                  <View style={styles.successCard}>
+                     <View style={styles.iconCircle}>
+                     <CheckCircle2 color={COLORS.white} size={50} />
+                     </View>
+                     <Text style={styles.successTitle}>සාර්ථකයි!</Text>
+                     <Text style={styles.successMsg}>‌තොරතුරු පද්ධතියට සාර්ථකව ඇතුළත් කරන ලදී.</Text>
+                     <TouchableOpacity 
+                     style={styles.modalButton}
+                     onPress={() => setShowSuccessModal(false)}
+                     >
+                     <Text style={styles.modalButtonText}>හරි (OK)</Text>
+                     </TouchableOpacity>
+                  </View>
+               </View>
+               </Modal>
     </SafeAreaView>
   );
 };
@@ -263,6 +302,15 @@ const styles = StyleSheet.create({
   deleteText: { color: COLORS.danger, fontWeight: 'bold', fontSize: 12 },
   saveBtn: { flex: 2, height: 50, backgroundColor: COLORS.secondary, borderRadius: 15, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
   saveText: { color: COLORS.white, fontWeight: 'bold', fontSize: 12 },
+  saveBtnText: { color: COLORS.white, fontWeight: 'bold', fontSize: 15 },
+  alertText: { fontSize: 11, color: COLORS.danger, fontWeight: '600' },
+   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+   successCard: { backgroundColor: COLORS.white, width: '100%', borderRadius: 30, padding: 30, alignItems: 'center' },
+  iconCircle: { width: 80, height: 80, backgroundColor: COLORS.teaGreen, borderRadius: 40, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  successTitle: { fontSize: 24, fontWeight: 'bold', color: COLORS.primary, marginBottom: 10 },
+  successMsg: { fontSize: 16, color: '#666', textAlign: 'center', marginBottom: 25 },
+  modalButton: { backgroundColor: COLORS.primary, paddingVertical: 15, width: '100%', borderRadius: 20, alignItems: 'center' },
+  modalButtonText: { color: COLORS.white, fontWeight: 'bold', fontSize: 16 }
 });
 
 export default DailyUpdate;

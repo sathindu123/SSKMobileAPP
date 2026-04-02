@@ -79,13 +79,13 @@ const Dashboard = () => {
                <View style={styles.userSection}>
                   <View style={styles.avatarBorder}>
                     <Image 
-                      source={{ uri: 'https://ui-avatars.com/api/?name=Mahesh+Priyankara&background=D4AF37&color=fff' }} 
+                      source={{ uri: 'https://ui-avatars.com/api/?name=Sathindu+Kumara&background=D4AF37&color=fff' }} 
                       style={styles.avatar}
                     />
                   </View>
                   <View>
                     <Text style={styles.greetText}>ආයුබෝවන්,</Text>
-                    <Text style={styles.userName}>මහේෂ් ප්‍රියංකර</Text>
+                    <Text style={styles.userName}>සතිදු සත්සර</Text>
                   </View>
                </View>
                <TouchableOpacity style={styles.iconBtn}>
