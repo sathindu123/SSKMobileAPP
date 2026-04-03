@@ -23,3 +23,27 @@ export const saveStock = async (params: any) => {
     console.error("Error connecting to GS:", error);
   }
 };
+
+
+
+export const getStock = async (page = 1, limit = 3) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}?action=loadStock&page=${page}&limit=${limit}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch customers");
+    }
+
+    const data = await response.json();
+    return data;
+
+  } catch (err) {
+    console.error("Get Customers Error:", err);
+    throw err;
+  }
+};

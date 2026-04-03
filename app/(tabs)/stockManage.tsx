@@ -1,17 +1,19 @@
-import { saveStock } from '@/src/service/stockService';
+import { getStock, saveStock } from '@/src/service/stockService';
 import { useRouter } from 'expo-router';
 import {
    AlertCircle,
    ArrowLeft,
    Box,
    CheckCircle2,
+   ChevronLeft,
+   ChevronRight,
    Hash,
    Package,
    Save,
    ShoppingBag,
    Tag
 } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useState, useEffect} from 'react';
 import {
    ActivityIndicator,
    Alert, KeyboardAvoidingView, Modal, Platform,
@@ -39,9 +41,18 @@ const COLORS = {
 
 const StockManagement = () => {
    const [isLoading, setIsLoading] = useState(false);
+   const [stocks, setStocks] = useState([]); // තොග දත්ත ගබඩා කිරීමට
    const router = useRouter();
    const [showSuccessModal, setShowSuccessModal] = useState(false);
+   
+   // Pagination States
+   const [currentPage, setCurrentPage] = useState(1);
+   const [hasMore, setHasMore] = useState(true); // ඊළඟ පිටුවක් තිබේදැයි බැලීමට
+   const itemsPerPage = 5;
 
+   useEffect(() =>{
+      loadStock();
+   }, [currentPage]);
 
   const [formData, setFormData] = useState({
     id: '',
@@ -50,33 +61,47 @@ const StockManagement = () => {
     price: ''
   });
 
+const loadStock = async () => {
+  setIsLoading(true);
+
+  try {
+    const response = await getStock(currentPage, itemsPerPage);
+      setStocks(response);
+      setHasMore(currentPage < response.totalPages);
+    
+
+  } catch (error) {
+    console.error(error);
+    Alert.alert("Error", "Stock data load කරන්න බැරි වුණා");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
   const handleSaveStock = async () => {
-   setIsLoading(true);
     if (!formData.productName || !formData.count || !formData.price) {
       Alert.alert("අවධානය", "කරුණාකර සියලු විස්තර ඇතුළත් කරන්න.");
-      setIsLoading(false);
       return;
     }
+    
+    setIsLoading(true);
     const res = await saveStock(formData);
     setIsLoading(false);
     setShowSuccessModal(true);
     clearFormData();
+    loadStock(); // අලුත් දත්ත පෙන්වීමට රීලෝඩ් කරන්න
   };
 
   const clearFormData = () =>{
-   setFormData({
-      id: '',
-      productName: '',
-      count: '',
-      price: ''
-      });
+   setFormData({ id: '', productName: '', count: '', price: '' });
   }
+
+
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       
-      {/* --- Top Navbar --- */}
       <View style={styles.navbar}>
         <TouchableOpacity onPress={() => router.replace('/dashbord')} style={styles.backBtn}>
           <ArrowLeft color={COLORS.primary} size={24} />
@@ -90,13 +115,10 @@ const StockManagement = () => {
         </View>
       </View>
 
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollBody}>
           
-          {/* --- Summary Cards --- */}
+          {/* Summary Cards */}
           <View style={styles.summaryRow}>
              <View style={styles.summaryCard}>
                 <Text style={styles.summaryLabel}>මුළු තොග වටිනාකම</Text>
@@ -108,7 +130,7 @@ const StockManagement = () => {
              </View>
           </View>
 
-          {/* --- Add New Stock Form --- */}
+          {/* Form Card */}
           <View style={styles.card}>
             <View style={styles.cardHeader}>
                <Package color={COLORS.primary} size={20} />
@@ -144,7 +166,7 @@ const StockManagement = () => {
 
                <View style={styles.rowInputs}>
                   <View style={[styles.inputWrapper, { flex: 1 }]}>
-                     <Text style={styles.label}>COUNT (ප්‍රමාණය)</Text>
+                     <Text style={styles.label}>COUNT</Text>
                      <View style={styles.inputBox}>
                         <Tag color={COLORS.primary} opacity={0.4} size={16} />
                         <TextInput 
@@ -157,7 +179,7 @@ const StockManagement = () => {
                      </View>
                   </View>
                   <View style={[styles.inputWrapper, { flex: 1.5 }]}>
-                     <Text style={styles.label}>PRICE (ඒකක මිල)</Text>
+                     <Text style={styles.label}>PRICE</Text>
                      <View style={styles.inputBox}>
                         <Text style={styles.currency}>Rs.</Text>
                         <TextInput 
@@ -171,62 +193,88 @@ const StockManagement = () => {
                   </View>
                </View>
 
-              <TouchableOpacity 
-                  style={styles.saveBtn} 
-                  onPress={handleSaveStock} 
-                  disabled={isLoading}
-                  >
-                  {isLoading ? (
-                     <ActivityIndicator color={COLORS.white} />
-                  ) : (
-                     <>
-                        <Save color={COLORS.white} size={20} />
-                        <Text style={styles.saveBtnText}>SAVE TO INVENTORY</Text>
-                     </>
+              <TouchableOpacity style={styles.saveBtn} onPress={handleSaveStock} disabled={isLoading}>
+                  {isLoading ? <ActivityIndicator color={COLORS.white} /> : (
+                     <><Save color={COLORS.white} size={20} /><Text style={styles.saveBtnText}>SAVE TO INVENTORY</Text></>
                   )}
                </TouchableOpacity>
             </View>
           </View>
 
-          {/* --- Current Inventory List --- */}
+          {/* Current Inventory List with Pagination */}
           <View style={styles.listSection}>
              <View style={styles.listHeader}>
-                <Text style={styles.cardTitle}>පවතින තොග (Current Stock)</Text>
-                <TouchableOpacity>
-                   <Text style={styles.viewAll}>View All</Text>
-                </TouchableOpacity>
+                <Text style={styles.cardTitle}>පවතින තොග ({stocks.length})</Text>
+                <View style={styles.pageIndicatorBox}>
+                   <Text style={styles.pageText}>Page {currentPage}</Text>
+                </View>
              </View>
 
-             {/* Sample Stock Item */}
-             <StockItem name="T-65 Fertilizer" id="#P-001" count={12} price="4,500.00" />
-             <StockItem name="Tea Bags (Small)" id="#P-042" count={3} price="850.00" isLow />
-             <StockItem name="Sprayer Machine" id="#P-015" count={5} price="12,000.00" />
+             {stocks.length > 0 ? (
+                stocks.map((item: any, index: number) => (
+                   <StockItem 
+                      key={index}
+                      name={item.productName} 
+                      id={item.id || `#P-${index}`} 
+                      count={item.count} 
+                      price={item.price} 
+                      isLow={parseInt(item.count) < 5} 
+                   />
+                ))
+             ) : (
+                <View style={styles.emptyState}>
+                   <Text style={styles.emptyText}>තොග දත්ත නොමැත.</Text>
+                </View>
+             )}
+
+             {/* Pagination Buttons */}
+            <View style={styles.paginationContainer}>
+                   <TouchableOpacity 
+                       style={[styles.pageButton, currentPage === 1 && { opacity: 0.4 }]}
+                       onPress={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                       disabled={currentPage === 1 || isLoading}
+                   >
+                       <ChevronLeft color={COLORS.white} size={20} />
+                       <Text style={styles.pageButtonText}>Prev</Text>
+                   </TouchableOpacity>
+   
+                   <View style={styles.pageIndicator}>
+                       <Text style={styles.pageIndicatorText}>{currentPage}</Text>
+                   </View>
+   
+                   <TouchableOpacity 
+                       style={[styles.pageButton, stocks.length < itemsPerPage && { opacity: 0.4 }]}
+                       onPress={() => setCurrentPage(prev => prev + 1)}
+                       disabled={stocks.length < itemsPerPage || isLoading}
+                   >
+                       <Text style={styles.pageButtonText}>Next</Text>
+                       <ChevronRight color={COLORS.white} size={20} />
+                   </TouchableOpacity>
+               </View>
           </View>
 
         </ScrollView>
       </KeyboardAvoidingView>
-            <Modal visible={showSuccessModal} transparent animationType="fade">
-               <View style={styles.modalBackdrop}>
-                  <View style={styles.successCard}>
-                     <View style={styles.iconCircle}>
-                     <CheckCircle2 color={COLORS.white} size={50} />
-                     </View>
-                     <Text style={styles.successTitle}>සාර්ථකයි!</Text>
-                     <Text style={styles.successMsg}>තොරතුරු පද්ධතියට සාර්ථකව ඇතුළත් කරන ලදී.</Text>
-                     <TouchableOpacity 
-                     style={styles.modalButton}
-                     onPress={() => setShowSuccessModal(false)}
-                     >
-                     <Text style={styles.modalButtonText}>හරි (OK)</Text>
-                     </TouchableOpacity>
-                  </View>
+
+      {/* Success Modal */}
+      <Modal visible={showSuccessModal} transparent animationType="fade">
+         <View style={styles.modalBackdrop}>
+            <View style={styles.successCard}>
+               <View style={styles.iconCircle}>
+                  <CheckCircle2 color={COLORS.white} size={50} />
                </View>
-               </Modal>
+               <Text style={styles.successTitle}>සාර්ථකයි!</Text>
+               <Text style={styles.successMsg}>තොරතුරු පද්ධතියට සාර්ථකව ඇතුළත් කරන ලදී.</Text>
+               <TouchableOpacity style={styles.modalButton} onPress={() => setShowSuccessModal(false)}>
+                  <Text style={styles.modalButtonText}>හරි (OK)</Text>
+               </TouchableOpacity>
+            </View>
+         </View>
+      </Modal>
     </SafeAreaView>
   );
 };
 
-// Reusable Stock Item Component
 const StockItem = ({ name, id, count, price, isLow }: any) => (
   <View style={styles.stockCard}>
      <View style={styles.stockMain}>
@@ -266,14 +314,18 @@ const styles = StyleSheet.create({
   iconCircle2: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.bg, justifyContent: 'center', alignItems: 'center' },
 
   scrollBody: { padding: 20 },
-  
-  // Summary
   summaryRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
   summaryCard: { flex: 1, backgroundColor: COLORS.white, padding: 18, borderRadius: 25, elevation: 2 },
   summaryLabel: { fontSize: 10, fontWeight: 'bold', color: '#999', marginBottom: 5 },
   summaryValue: { fontSize: 18, fontWeight: 'bold', color: COLORS.primary },
 
-  // Form Card
+  paginationContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 20, gap: 10 },
+  pageButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.primary, paddingHorizontal: 15, paddingVertical: 10, borderRadius: 12, gap: 5 },
+  pageButtonText: { color: COLORS.white, fontWeight: 'bold', fontSize: 14 },
+  pageIndicator: { backgroundColor: COLORS.white, width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: COLORS.primary },
+  pageIndicatorText: { color: COLORS.primary, fontWeight: 'bold', fontSize: 16 },
+
+
   card: { backgroundColor: COLORS.white, borderRadius: 30, padding: 25, elevation: 3, shadowColor: '#000', shadowOpacity: 0.05 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 25 },
   cardTitle: { fontSize: 16, fontWeight: 'bold', color: COLORS.primary },
@@ -293,10 +345,23 @@ const styles = StyleSheet.create({
   },
   saveBtnText: { color: COLORS.white, fontWeight: 'bold', fontSize: 15 },
 
-  // List Section
-  listSection: { marginTop: 30, paddingBottom: 20 },
+  // Pagination Styles
+  listSection: { marginTop: 30, paddingBottom: 40 },
   listHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-  viewAll: { fontSize: 12, color: COLORS.accent, fontWeight: 'bold' },
+  pageIndicatorBox: { backgroundColor: COLORS.teaGreen, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 10 },
+  pageText: { fontSize: 12, color: COLORS.white, fontWeight: 'bold' },
+  
+  paginationRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 20, gap: 15 },
+  pageBtn: { 
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', 
+    backgroundColor: COLORS.white, paddingVertical: 12, borderRadius: 15, elevation: 2 
+  },
+  pageBtnText: { color: COLORS.primary, fontWeight: 'bold', marginHorizontal: 5 },
+  disabledBtn: { opacity: 0.5, backgroundColor: '#eee' },
+  
+  emptyState: { padding: 30, alignItems: 'center' },
+  emptyText: { color: '#999', fontStyle: 'italic' },
+
   stockCard: { backgroundColor: COLORS.white, borderRadius: 22, padding: 15, marginBottom: 12, elevation: 2 },
   stockMain: { flexDirection: 'row', alignItems: 'center' },
   productIcon: { width: 50, height: 50, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
@@ -311,14 +376,13 @@ const styles = StyleSheet.create({
     paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f5f5f5' 
   },
   alertText: { fontSize: 11, color: COLORS.danger, fontWeight: '600' },
-   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-   successCard: { backgroundColor: COLORS.white, width: '100%', borderRadius: 30, padding: 30, alignItems: 'center' },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  successCard: { backgroundColor: COLORS.white, width: '100%', borderRadius: 30, padding: 30, alignItems: 'center' },
   iconCircle: { width: 80, height: 80, backgroundColor: COLORS.teaGreen, borderRadius: 40, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   successTitle: { fontSize: 24, fontWeight: 'bold', color: COLORS.primary, marginBottom: 10 },
   successMsg: { fontSize: 16, color: '#666', textAlign: 'center', marginBottom: 25 },
   modalButton: { backgroundColor: COLORS.primary, paddingVertical: 15, width: '100%', borderRadius: 20, alignItems: 'center' },
   modalButtonText: { color: COLORS.white, fontWeight: 'bold', fontSize: 16 }
-
 });
 
 export default StockManagement;
