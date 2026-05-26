@@ -1,18 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { saveTeaLeaf, getTeaLeaves, getNameDailyLeaf } from '@/src/service/dailyTeaLeafService'; 
-import { 
-  View, Text, StyleSheet, ScrollView, TextInput, 
-  TouchableOpacity, SafeAreaView, StatusBar, 
-  Alert, Platform, 
-  ActivityIndicator,
-  Modal
-} from 'react-native';
-import { 
-  LayoutGrid, Calendar, Clock, 
-  Save, Trash2, Leaf, ArrowLeft,
-  CheckCircle2
-} from 'lucide-react-native';
+import { getNameDailyLeaf, getTeaLeaves, saveTeaLeaf } from '@/src/service/dailyTeaLeafService';
 import { useRouter } from 'expo-router';
+import {
+  ArrowLeft,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  LayoutGrid,
+  Leaf,
+  Save
+} from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 const COLORS = {
   primary: '#113023',
@@ -66,7 +76,7 @@ const DailyUpdate = () => {
   };
 
   const handleSaveRecord = async () => {
-    if (!farmerId || !goldLeaves || !goodLeaves) {
+    if (!farmerId || !goldLeaves || !goodLeaves || !farmerName || !date) {
       Alert.alert("අවධානය", "කරුණාකර විස්තර ඇතුළත් කරන්න.");
       return;
     }
@@ -94,10 +104,16 @@ const DailyUpdate = () => {
   };
 
   async function searchFarmer(): Promise<void> {
+    setIsLoading(true);
     try{
        const res = await getNameDailyLeaf(farmerId);
+       if(res){
+          setFarmerName(res.name); 
+       }
     }catch(err){
-
+      Alert.alert("Please Cheack ID!");
+    }finally{
+      setIsLoading(false);
     }
   }
 
@@ -147,7 +163,13 @@ const DailyUpdate = () => {
              </View>
              <View style={styles.inputHalf}>
                 <Text style={styles.label}>නම</Text>
-                <TextInput style={styles.input} placeholder="නම" value={farmerName} onChangeText={setFarmerName} />
+                <TextInput style={styles.input} placeholder="නම" value={farmerName} onChangeText={setFarmerName} editable={false} />
+             </View>
+          </View>
+          <View style={styles.inputGrid}>
+             <View style={styles.inputHalf}>
+                <Text style={styles.label}>Date</Text>
+                <TextInput style={styles.input} placeholder="2026-10-08" value={date} onChangeText={setFarmerDate}/>
              </View>
           </View>
 
@@ -177,8 +199,8 @@ const DailyUpdate = () => {
           </View>
           
           <View style={styles.tableHeadRow}>
-             <Text style={[styles.headCell, { flex: 2 }]}>නම</Text>
-             <Text style={[styles.headCell, { flex: 1.5 }]}>දිනය</Text>
+             <Text style={[styles.headCell, { flex: 3 }]}>නම</Text>
+             <Text style={[styles.headCell, { flex: 1 }]}>දිනය</Text>
              <Text style={[styles.headCell, { flex: 1, textAlign: 'right' }]}>රන්</Text>
              <Text style={[styles.headCell, { flex: 1, textAlign: 'right' }]}>හොඳ</Text>
           </View>
@@ -188,7 +210,7 @@ const DailyUpdate = () => {
                 {records.length > 0 ? (
                   records.map((item: any, index: number) => (
                     <View key={index} style={styles.tableRow}>
-                       <Text style={[styles.cell, { flex: 2 }]} numberOfLines={1}>
+                       <Text style={[styles.cell, { flex: 3 }]} numberOfLines={1}>
                          {item.farmerName || 'N/A'}
                        </Text>
                        <Text style={[styles.cell, { flex: 1.5 }]}>{item.date}</Text>
